@@ -1,5 +1,5 @@
 #PhaoHoa
 
-Your site is live at https://sevantu.github.io/file-phaohoa/
+xem ở đây https://sevantu.github.io/file-phaohoa/
 
-follow
+nhớ folow mình nhé
