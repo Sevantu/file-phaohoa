@@ -61,12 +61,17 @@ const INVISIBLE = '_INVISIBLE_';
 const PI_2 = Math.PI * 2;
 const PI_HALF = Math.PI * 0.5;
 
+let starfieldParticles = []; // ✨ THÊM DÒNG NÀY
+const STARFIELD_DENSITY = 0.00008; // ✨ THÊM DÒNG NÀY (Mật độ sao, có thể điều chỉnh)
+
 // Stage.disableHighDPI = true;
+const starfieldStage = new Stage('starfield-canvas'); // ✨ THÊM DÒNG NÀY
 const trailsStage = new Stage('trails-canvas');
 const mainStage = new Stage('main-canvas');
 const stages = [
-	trailsStage,
-	mainStage
+    starfieldStage, // ✨ THÊM stage NÀY VÀO ĐẦU MẢNG
+    trailsStage,
+    mainStage
 ];
 
 
@@ -1177,7 +1182,26 @@ mainStage.addEventListener('pointerend', handlePointerEnd);
 mainStage.addEventListener('pointermove', handlePointerMove);
 window.addEventListener('keydown', handleKeydown);
 
+// ... (có thể là sau các hàm randomColor hoặc trước handleResize) ...
 
+// ✨ BẮT ĐẦU KHỐI CODE MỚI THÊM VÀO
+function createStarfield() {
+    starfieldParticles = [];
+    if (!starfieldStage || !starfieldStage.width || !starfieldStage.height) return; // Đảm bảo stage đã sẵn sàng
+
+    const area = starfieldStage.width * starfieldStage.height;
+    const numStars = area * STARFIELD_DENSITY;
+    for (let i = 0; i < numStars; i++) {
+        starfieldParticles.push({
+            x: Math.random() * starfieldStage.width,
+            y: Math.random() * starfieldStage.height,
+            size: Math.random() * 1.2 + 0.3, // Kích thước sao nhỏ
+            opacity: Math.random() * 0.3 + 0.05, // Rất mờ
+            twinkleSpeed: Math.random() * 0.0005 + 0.0002 // Tốc độ lấp lánh ngẫu nhiên
+        });
+    }
+}
+// ✨ KẾT THÚC KHỐI CODE MỚI THÊM VÀO
 // Account for window resize and custom scale changes.
 function handleResize() {
 	const w = window.innerWidth;
@@ -1193,6 +1217,7 @@ function handleResize() {
 	const scaleFactor = scaleFactorSelector();
 	stageW = containerW / scaleFactor;
 	stageH = containerH / scaleFactor;
+	createStarfield(); // ✨ THÊM DÒNG NÀY
 }
 
 // Compute initial dimensions
@@ -1355,8 +1380,34 @@ function update(frameTime, lag) {
 	
 	render(speed);
 }
+// ... (ngay TRƯỚC hàm function render(speed) {...} ) ...
 
+// ✨ HÀM renderStarfield() phiên bản đã sửa:
+function renderStarfield() {
+    if (!starfieldStage || !starfieldStage.ctx) return; 
+
+    const ctx = starfieldStage.ctx;
+    const { dpr, width, height } = starfieldStage; 
+
+    // Giống cách hàm render chính xử lý scale
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); 
+
+    ctx.clearRect(0, 0, width, height); // width, height là kích thước logic
+
+    const currentTime = Date.now();
+    starfieldParticles.forEach(star => {
+        const currentOpacity = star.opacity * (0.6 + Math.sin(currentTime * star.twinkleSpeed + star.x) * 0.4);
+        ctx.fillStyle = `rgba(200, 200, 220, ${currentOpacity})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, PI_2); // Vẽ tại tọa độ logic
+        ctx.fill();
+    });
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform như hàm render chính
+}
+// ✨ KẾT THÚC KHỐI CODE MỚI THÊM VÀO
 function render(speed) {
+	renderStarfield(); // ✨ THÊM DÒNG NÀY VÀO ĐẦU TIÊN
+	
 	const { dpr } = mainStage;
 	const width = stageW;
 	const height = stageH;
