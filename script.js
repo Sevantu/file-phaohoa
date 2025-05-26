@@ -597,7 +597,75 @@ const crysanthemumShell = (size=1) => {
 	};
 };
 
+// ✨ BẮT ĐẦU KHỐI CODE MỚI THÊM VÀO
+const rainbowShell = (size = 1) => {
+    const rainbowColors = [
+        COLOR.Red,
+        '#ff7f00', // Orange (Cam)
+        COLOR.Gold,  // Yellow (Vàng - dùng Gold cho đẹp)
+        COLOR.Green, // Green (Lục)
+        COLOR.Blue,  // Blue (Lam)
+        '#4b0082', // Indigo (Chàm)
+        COLOR.Purple // Violet (Tím)
+    ];
+    // Để đảm bảo màu sắc được phân bố đều mỗi lần nổ, reset colorIndex cho mỗi shell instance
+    // Điều này cần một chút thay đổi trong cách starFactoryCreator được gọi hoặc xử lý context.
+    // Cách đơn giản là để starFactoryCreator tự quản lý index dựa trên instance.
 
+    return {
+        shellSize: size,
+        spreadSize: 320 + size * 110,
+        starLife: 1000 + size * 250,
+        starDensity: 1.15, // Mật độ sao khá
+        // Chúng ta sẽ không định nghĩa 'color' ở đây.
+        // Thay vào đó, chúng ta cung cấp một hàm để tạo ra starFactory tùy chỉnh.
+        starFactoryCreator: (shellBurstContext) => {
+            // shellBurstContext sẽ chứa các thông tin cần thiết từ Shell.burst như x, y, speed, starLife,...
+            let colorIndex = 0; // Index màu cho mỗi vụ nổ của shell này
+
+            return (angle, speedMult) => {
+                const starColor = rainbowColors[colorIndex % rainbowColors.length];
+                colorIndex++; // Chuyển sang màu tiếp theo cho ngôi sao tiếp theo
+
+                const star = Star.add(
+                    shellBurstContext.x, // Vị trí nổ X
+                    shellBurstContext.y, // Vị trí nổ Y
+                    starColor,           // Màu sao từ mảng cầu vồng
+                    angle,               // Góc bắn của sao
+                    speedMult * shellBurstContext.speed, // Tốc độ của sao
+                    shellBurstContext.starLife + Math.random() * shellBurstContext.starLife * shellBurstContext.starLifeVariation,
+                    shellBurstContext.initialVelocityX, // Vận tốc ban đầu của shell (nếu có)
+                    shellBurstContext.initialVelocityY  // Vận tốc ban đầu của shell (nếu có)
+                );
+
+                // Các hiệu ứng khác cho sao có thể được thêm vào đây từ shellBurstContext
+                if (shellBurstContext.secondColor) { // Ví dụ nếu shell này có secondColor
+                    star.transitionTime = shellBurstContext.starLife * (Math.random() * 0.05 + 0.32);
+                    star.secondColor = shellBurstContext.secondColor;
+                }
+                if (shellBurstContext.strobe) {
+                    star.transitionTime = shellBurstContext.starLife * (Math.random() * 0.08 + 0.46);
+                    star.strobe = true;
+                    star.strobeFreq = shellBurstContext.strobeFreq || (Math.random() * 20 + 40);
+                    if (shellBurstContext.strobeColor) {
+                        star.secondColor = shellBurstContext.strobeColor;
+                    }
+                }
+                star.onDeath = shellBurstContext.onDeath; // Gán hiệu ứng khi chết nếu có
+
+                if (shellBurstContext.glitter) {
+                    star.sparkFreq = shellBurstContext.sparkFreq;
+                    star.sparkSpeed = shellBurstContext.sparkSpeed;
+                    star.sparkLife = shellBurstContext.sparkLife;
+                    star.sparkLifeVariation = shellBurstContext.sparkLifeVariation;
+                    star.sparkColor = shellBurstContext.glitterColor;
+                    star.sparkTimer = Math.random() * star.sparkFreq;
+                }
+            };
+        }
+    };
+};
+// ✨ KẾT THÚC KHỐI CODE MỚI THÊM VÀO
 const ghostShell = (size=1) => {
 	// Extend crysanthemum shell
 	const shell = crysanthemumShell(size);
@@ -795,6 +863,7 @@ const shellTypes = {
 	'Palm': palmShell,
 	'Ring': ringShell,
 	'Strobe': strobeShell,
+	'Rainbow Burst': rainbowShell, // ✨ THÊM DÒNG NÀY
 	'Willow': willowShell
 };
 
@@ -1859,132 +1928,161 @@ class Shell {
 		sparkFreq = sparkFreq / quality;
 		
 		// Star factory for primary burst, pistils, and streamers.
-		let firstStar = true;
-		const starFactory = (angle, speedMult) => {
-			// For non-horsetail shells, compute an initial vertical speed to add to star burst.
-			// The magic number comes from testing what looks best. The ideal is that all shell
-			// bursts appear visually centered for the majority of the star life (excl. willows etc.)
-			const standardInitialSpeed = this.spreadSize / 1800;
-			
-			const star = Star.add(
-				x,
-				y,
-				color || randomColor(),
-				angle,
-				speedMult * speed,
-				// add minor variation to star life
-				this.starLife + Math.random() * this.starLife * this.starLifeVariation,
-				this.horsetail ? this.comet && this.comet.speedX : 0,
-				this.horsetail ? this.comet && this.comet.speedY : -standardInitialSpeed
-			);
-	
-			if (this.secondColor) {
-				star.transitionTime = this.starLife * (Math.random() * 0.05 + 0.32);
-				star.secondColor = this.secondColor;
-			}
+		// Apply quality to spark count
+		sparkFreq = sparkFreq / quality; // Dòng này giữ nguyên, không xóa
+		
+		// ✨ BẮT ĐẦU KHỐI CODE MỚI THAY THẾ TỪ ĐÂY
+		// (Xóa từ "let firstStar = true;" của code cũ đến hết phần "else if (Array.isArray(this.color)) { ... }" cũ)
 
-			if (this.strobe) {
-				star.transitionTime = this.starLife * (Math.random() * 0.08 + 0.46);
-				star.strobe = true;
-				// How many milliseconds between switch of strobe state "tick". Note that the strobe pattern
-				// is on:off:off, so this is the "on" duration, while the "off" duration is twice as long.
-				star.strobeFreq = Math.random() * 20 + 40;
-				if (this.strobeColor) {
-					star.secondColor = this.strobeColor;
+		let starFactory;
+		// Biến này sẽ giữ màu gốc của shell để dùng cho starFactory cũ hoặc các logic không có starFactoryCreator
+		let designatedShellColor = this.color; 
+
+		if (this.starFactoryCreator) {
+			// Nếu shell này có hàm tạo starFactory riêng (ví dụ: RainbowBurst, GalaxySwirl)
+			const shellBurstContext = {
+				x, y,
+				speed, // Tốc độ nổ chung đã tính ở trên
+				starLife: this.starLife,
+				starLifeVariation: this.starLifeVariation,
+				initialVelocityX: this.horsetail ? (this.comet && this.comet.speedX) : 0,
+				initialVelocityY: this.horsetail ? (this.comet && this.comet.speedY) : -(this.spreadSize / 1800),
+				color: this.color, // Truyền màu gốc của shell, starFactoryCreator có thể dùng hoặc bỏ qua
+				secondColor: this.secondColor,
+				strobe: this.strobe,
+				strobeColor: this.strobeColor,
+				strobeFreq: (this.strobe ? (Math.random() * 20 + 40) : 0),
+				onDeath: onDeath, // onDeath đã được xác định ở các dòng trên của burst()
+				glitter: this.glitter,
+				glitterColor: this.glitterColor,
+				sparkFreq: sparkFreq,
+				sparkSpeed: sparkSpeed,
+				sparkLife: sparkLife,
+				sparkLifeVariation: sparkLifeVariation
+			};
+			starFactory = this.starFactoryCreator(shellBurstContext);
+		} else {
+			// Đây là logic tạo starFactory MẶC ĐỊNH (cho các shell cũ không có starFactoryCreator)
+			// Xác định màu sẽ dùng cho starFactory mặc định
+			if (typeof this.color === 'string' && this.color === 'random') {
+				designatedShellColor = null; // Để starFactory mặc định tự random màu
+			}
+			// (nếu this.color là một màu cụ thể hoặc mảng, designatedShellColor đã giữ giá trị đó rồi)
+
+			starFactory = (angle, speedMult) => {
+				const standardInitialSpeed = this.spreadSize / 1800;
+				let starColorToUse = designatedShellColor;
+				// Nếu designatedShellColor là một mảng (ví dụ: cho shell 2 màu cũ), starFactory mặc định
+				// thường chỉ dùng màu đầu tiên hoặc cần logic phức tạp hơn mà ta không thêm vào đây.
+				// Tạm thời, nếu là mảng, sẽ lấy màu đầu hoặc random.
+				// Logic xử lý mảng màu sẽ nằm ở khối gọi createBurst bên dưới.
+				if (Array.isArray(starColorToUse)) {
+					// Quyết định này sẽ được đưa xuống khối if/else if xử lý màu
+					// Ở đây chỉ cần đảm bảo starFactory nhận một màu hợp lệ hoặc null
+					starColorToUse = starColorToUse[0] || null; // Hoặc có thể để logic này cho khối dưới
 				}
-			}
-			
-			star.onDeath = onDeath;
 
-			if (this.glitter) {
-				star.sparkFreq = sparkFreq;
-				star.sparkSpeed = sparkSpeed;
-				star.sparkLife = sparkLife;
-				star.sparkLifeVariation = sparkLifeVariation;
-				star.sparkColor = this.glitterColor;
-				star.sparkTimer = Math.random() * star.sparkFreq;
-			}
-		};
-		
-		
-		if (typeof this.color === 'string') {
-			if (this.color === 'random') {
-				color = null; // falsey value creates random color in starFactory
-			} else {
-				color = this.color;
-			}
-			
-			// Rings have positional randomness, but are rotated randomly
-			if (this.ring) {
-				const ringStartAngle = Math.random() * Math.PI;
-				const ringSquash = Math.pow(Math.random(), 2) * 0.85 + 0.15;;
-				
-				createParticleArc(0, PI_2, this.starCount, 0, angle => {
-					// Create a ring, squashed horizontally
-					const initSpeedX = Math.sin(angle) * speed * ringSquash;
-					const initSpeedY = Math.cos(angle) * speed;
-					// Rotate ring
-					const newSpeed = MyMath.pointDist(0, 0, initSpeedX, initSpeedY);
-					const newAngle = MyMath.pointAngle(0, 0, initSpeedX, initSpeedY) + ringStartAngle;
-					const star = Star.add(
-						x,
-						y,
-						color,
-						newAngle,
-						// apply near cubic falloff to speed (places more particles towards outside)
-						newSpeed,//speed,
-						// add minor variation to star life
-						this.starLife + Math.random() * this.starLife * this.starLifeVariation
-					);
-					
-					if (this.glitter) {
-						star.sparkFreq = sparkFreq;
-						star.sparkSpeed = sparkSpeed;
-						star.sparkLife = sparkLife;
-						star.sparkLifeVariation = sparkLifeVariation;
-						star.sparkColor = this.glitterColor;
-						star.sparkTimer = Math.random() * star.sparkFreq;
+				const star = Star.add(
+					x, y,
+					starColorToUse || randomColor(), // Nếu màu là null (random) hoặc không hợp lệ thì random
+					angle,
+					speedMult * speed,
+					this.starLife + Math.random() * this.starLife * this.starLifeVariation,
+					this.horsetail ? (this.comet && this.comet.speedX) : 0,
+					this.horsetail ? (this.comet && this.comet.speedY) : -standardInitialSpeed
+				);
+
+				if (this.secondColor) {
+					star.transitionTime = this.starLife * (Math.random() * 0.05 + 0.32);
+					star.secondColor = this.secondColor;
+				}
+				if (this.strobe) {
+					star.transitionTime = this.starLife * (Math.random() * 0.08 + 0.46);
+					star.strobe = true;
+					star.strobeFreq = Math.random() * 20 + 40;
+					if (this.strobeColor) {
+						star.secondColor = this.strobeColor;
 					}
-				});
-			}
-			// Normal burst
-			else {
-				createBurst(this.starCount, starFactory);
-			}
+				}
+				star.onDeath = onDeath;
+				if (this.glitter) {
+					star.sparkFreq = sparkFreq;
+					star.sparkSpeed = sparkSpeed;
+					star.sparkLife = sparkLife;
+					star.sparkLifeVariation = sparkLifeVariation;
+					star.sparkColor = this.glitterColor;
+					star.sparkTimer = Math.random() * star.sparkFreq;
+				}
+			};
 		}
-		else if (Array.isArray(this.color)) {
+
+		// Bây giờ, gọi createBurst hoặc createParticleArc với starFactory đã được tạo
+		if (!starFactory) {
+			console.error('Error: starFactory was not created for shell:', this);
+			return; // Không thể tiếp tục nếu không có starFactory
+		}
+
+		if (this.ring && !this.starFactoryCreator) {
+			// Logic cho RING shells (chỉ khi không có starFactoryCreator tùy chỉnh, vì ring có cách tạo sao đặc biệt)
+			const ringStartAngle = Math.random() * Math.PI;
+			const ringSquash = Math.pow(Math.random(), 2) * 0.85 + 0.15;
+			
+			createParticleArc(0, PI_2, this.starCount, 0, (angle) => {
+				const initSpeedX = Math.sin(angle) * speed * ringSquash;
+				const initSpeedY = Math.cos(angle) * speed;
+				const finalSpeed = MyMath.pointDist(0, 0, initSpeedX, initSpeedY);
+				const finalAngle = MyMath.pointAngle(0, 0, initSpeedX, initSpeedY) + ringStartAngle;
+				
+				const star = Star.add(
+					x, y,
+					(typeof designatedShellColor === 'string' && designatedShellColor !== 'random' ? designatedShellColor : randomColor()), // Ring dùng màu chính hoặc random
+					finalAngle,
+					finalSpeed,
+					this.starLife + Math.random() * this.starLife * this.starLifeVariation
+				);
+				if (this.glitter) {
+					star.sparkFreq = sparkFreq;
+					star.sparkSpeed = sparkSpeed;
+					star.sparkLife = sparkLife;
+					star.sparkLifeVariation = sparkLifeVariation;
+					star.sparkColor = this.glitterColor;
+					star.sparkTimer = Math.random() * star.sparkFreq;
+				}
+			});
+		} else if (Array.isArray(this.color) && !this.starFactoryCreator) {
+			// Logic cho shell có MẢNG MÀU (hai màu) và KHÔNG có starFactoryCreator tùy chỉnh
+			const colorsArray = this.color; // designatedShellColor lúc này là mảng
 			if (Math.random() < 0.5) {
 				const start = Math.random() * Math.PI;
 				const start2 = start + Math.PI;
 				const arc = Math.PI;
-				color = this.color[0];
-				// Not creating a full arc automatically reduces star count.
-				createBurst(this.starCount, starFactory, start, arc);
-				color = this.color[1];
-				createBurst(this.starCount, starFactory, start2, arc);
+				designatedShellColor = colorsArray[0]; // Gán màu cho starFactory mặc định sử dụng
+				createBurst(this.starCount / 2, starFactory, start, arc);
+				designatedShellColor = colorsArray[1]; // Gán màu tiếp theo
+				createBurst(this.starCount / 2, starFactory, start2, arc);
 			} else {
-				color = this.color[0];
+				designatedShellColor = colorsArray[0];
 				createBurst(this.starCount / 2, starFactory);
-				color = this.color[1];
+				designatedShellColor = colorsArray[1];
 				createBurst(this.starCount / 2, starFactory);
 			}
+		} else {
+			// Trường hợp còn lại:
+			// - Shell có starFactoryCreator (ví dụ: RainbowBurst, GalaxySwirl)
+			// - Shell có màu đơn (string, không phải 'random', và không phải ring)
+			// - Shell có màu 'random' (string) và không phải ring
+			// designatedShellColor sẽ được dùng bởi starFactory mặc định nếu không có starFactoryCreator
+			// Nếu có starFactoryCreator, nó đã tự quản lý màu sắc rồi.
+			createBurst(this.starCount, starFactory);
 		}
-		else {
-			throw new Error('Invalid shell color. Expected string or array of strings, but got: ' + this.color);
+
+		// ✨ KẾT THÚC KHỐI CODE MỚI THAY THẾ
+		// (Phần code if (this.pistil) { ... } và các phần sau đó giữ nguyên)
+		if (this.pistil) { 
+		// ... (code cho pistil, streamers, BurstFlash.add, soundManager.playSound giữ nguyên)
 		}
-		
-		if (this.pistil) {
-			const innerShell = new Shell({
-				spreadSize: this.spreadSize * 0.5,
-				starLife: this.starLife * 0.6,
-				starLifeVariation: this.starLifeVariation,
-				starDensity: 1.4,
-				color: this.pistilColor,
-				glitter: 'light',
-				glitterColor: this.pistilColor === COLOR.Gold ? COLOR.Gold : COLOR.White
-			});
-			innerShell.burst(x, y);
-		}
+		// ...
+	// } // kết thúc burst(x,y)
 		
 		if (this.streamers) {
 			const innerShell = new Shell({
