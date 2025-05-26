@@ -9,7 +9,7 @@ body {
 }
 
 html {
-  background-color: #000;
+  background-color: #030308; /* ✨ SỬA Ở ĐÂY */
 }
 
 body {
@@ -82,11 +82,18 @@ body {
 }
 .canvas-container canvas {
   position: absolute;
+  top: 0; /* ✨ THÊM DÒNG NÀY */
+  left: 0; /* ✨ THÊM DÒNG NÀY */
   mix-blend-mode: lighten;
   -webkit-transform: translateZ(0);
           transform: translateZ(0);
 }
-
+/* ✨ THÊM KHỐI CSS MỚI NÀY VÀO SAU KHỐI .canvas-container canvas */
+#starfield-canvas {
+  mix-blend-mode: screen; /* Hoặc 'normal' nếu không muốn hòa trộn đặc biệt */
+  /* z-index có thể không cần thiết nếu thứ tự DOM đã đúng, 
+     nhưng nếu starfield-canvas không nằm dưới cùng, bạn có thể thử thêm z-index: -1; */
+}
 .controls {
   position: absolute;
   top: 0;
@@ -228,10 +235,10 @@ body {
 }
 @media (min-width: 840px) {
   .btn:hover {
-    opacity: 0.32;
+    opacity: 0.45; /* ✨ SỬA Ở ĐÂY (ví dụ) */
   }
   .btn--bright:hover {
-    opacity: 0.75;
+    opacity: 0.85; /* ✨ SỬA Ở ĐÂY (ví dụ) */
   }
 }
 .btn svg {
