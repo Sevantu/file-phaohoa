@@ -579,9 +579,16 @@ const crysanthemumShell = (size=1) => {
 	const pistilColor = pistil && makePistilColor(color);
 	const secondColor = singleColor && (Math.random() < 0.2 || color === COLOR.White) ? pistilColor || randomColor({ notColor: color, limitWhite: true }) : null;
 	const streamers = !pistil && color !== COLOR.White && Math.random() < 0.42;
-	let starDensity = glitter ? 1.1 : 1.25;
-	if (isLowQuality) starDensity *= 0.8;
-	if (isHighQuality) starDensity = 1.2;
+	// ✨ BẮT ĐẦU SỬA TỪ ĐÂY
+	    let starDensity;
+	    if (isLowQuality) {
+	        starDensity = glitter ? 0.5 : 0.6; // Giảm mạnh cho chất lượng thấp
+	    } else if (isNormalQuality) {
+	        starDensity = glitter ? 0.8 : 0.95; // Giảm cho chất lượng thường
+	    } else { // isHighQuality
+	        starDensity = glitter ? 1.1 : 1.25; // Giữ nguyên hoặc giảm nhẹ nếu cần
+	    }
+	    // ✨ KẾT THÚC SỬA Ở ĐÂY
 	return {
 		shellSize: size,
 		spreadSize: 300 + size * 100,
@@ -616,7 +623,7 @@ const rainbowShell = (size = 1) => {
         shellSize: size,
         spreadSize: 320 + size * 110,
         starLife: 1000 + size * 250,
-        starDensity: 1.15, // Mật độ sao khá
+        starDensity: isLowQuality ? 0.6 : (isNormalQuality ? 0.9 : 1.15),
         // Chúng ta sẽ không định nghĩa 'color' ở đây.
         // Thay vào đó, chúng ta cung cấp một hàm để tạo ra starFactory tùy chỉnh.
         starFactoryCreator: (shellBurstContext) => {
@@ -682,7 +689,8 @@ const galaxySwirlShell = (size = 1) => {
         shellSize: size,
         spreadSize: 280 + size * 90, // Vùng nổ vừa phải
         starLife: 1500 + size * 300, // Sao sống lâu hơn một chút để thấy rõ hiệu ứng xoáy
-        starDensity: 1.0,
+	// ✨ SỬA THÀNH:
+	starDensity: isLowQuality ? 0.5 : (isNormalQuality ? 0.75 : 1.0),
         color: mainColor, // Màu chính của các ngôi sao
         glitter: 'medium', // Thêm hiệu ứng lấp lánh
         glitterColor: glitterColor,
@@ -806,7 +814,9 @@ const ringShell = (size=1) => {
 		color,
 		spreadSize: 300 + size * 100,
 		starLife: 900 + size * 200,
-		starCount: 2.2 * PI_2 * (size+1),
+		// starCount: 2.2 * PI_2 * (size+1), // Dòng cũ
+		// ✨ SỬA THÀNH:
+		starCount: (2.2 * PI_2 * (size+1)) * (isLowQuality ? 0.5 : (isNormalQuality ? 0.75 : 1)),
 		pistil,
 		pistilColor: makePistilColor(color),
 		glitter: !pistil ? 'light' : '',
@@ -1926,9 +1936,19 @@ class Shell {
 				
 		// Set default starCount if needed, will be based on shell size and scale exponentially, like a sphere's surface area.
 		if (!this.starCount) {
-			const density = options.starDensity || 1;
-			const scaledSize = this.spreadSize / 54;
-			this.starCount = Math.max(6, scaledSize * scaledSize * density);
+		    const density = options.starDensity || 1;
+		    const scaledSize = this.spreadSize / 54;
+		
+		    // ✨ BẮT ĐẦU SỬA TỪ ĐÂY
+		    let baseStarCount = Math.max(6, scaledSize * scaledSize * density);
+		    if (isLowQuality) {
+		        baseStarCount *= 0.5; // Giảm 50% cho chất lượng thấp
+		    } else if (isNormalQuality) {
+		        baseStarCount *= 0.75; // Giảm 25% cho chất lượng thường
+		    }
+		    // Đối với isHighQuality, baseStarCount giữ nguyên
+		    this.starCount = Math.floor(baseStarCount); // Làm tròn xuống để đảm bảo là số nguyên
+		    // ✨ KẾT THÚC SỬA Ở ĐÂY
 		}
 	}
 	
