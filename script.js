@@ -665,6 +665,83 @@ const rainbowShell = (size = 1) => {
         }
     };
 };
+
+// ✨ KẾT THÚC KHỐI CODE MỚI THÊM VÀO
+// ... (sau hàm const rainbowShell = (size = 1) => { ... }) ...
+
+// ✨ BẮT ĐẦU KHỐI CODE MỚI THÊM VÀO
+const galaxySwirlShell = (size = 1) => {
+    const mainColor = randomColor({ notColor: COLOR.White, limitWhite: true });
+    // Chọn màu glitter tương phản hoặc bổ sung đẹp mắt
+    let glitterColor = randomColor({ notColor: mainColor, limitWhite: true });
+    if (glitterColor === mainColor) { // Đảm bảo không trùng màu nếu random không đủ tốt
+        glitterColor = (mainColor === COLOR.Gold) ? COLOR.Blue : COLOR.Gold;
+    }
+
+    return {
+        shellSize: size,
+        spreadSize: 280 + size * 90, // Vùng nổ vừa phải
+        starLife: 1500 + size * 300, // Sao sống lâu hơn một chút để thấy rõ hiệu ứng xoáy
+        starDensity: 1.0,
+        color: mainColor, // Màu chính của các ngôi sao
+        glitter: 'medium', // Thêm hiệu ứng lấp lánh
+        glitterColor: glitterColor,
+
+        starFactoryCreator: (shellBurstContext) => {
+            const swirlIntensity = 0.8 + Math.random() * 0.5; // Độ mạnh của hiệu ứng xoáy
+            const numArms = Math.floor(Math.random() * 2) + 2; // Số nhánh xoáy (2 hoặc 3)
+
+            return (angle, speedMult) => {
+                const baseSpeed = speedMult * shellBurstContext.speed;
+
+                // Tạo vận tốc ban đầu hướng ra ngoài tâm như bình thường
+                let starSpeedX = Math.sin(angle) * baseSpeed;
+                let starSpeedY = Math.cos(angle) * baseSpeed;
+
+                // Thêm một thành phần vận tốc tiếp tuyến để tạo hiệu ứng xoáy
+                // Vận tốc tiếp tuyến này sẽ giảm dần theo thời gian hoặc khoảng cách (hiện tại là cố định ban đầu)
+                const tangentialSpeedFactor = baseSpeed * 0.6 * swirlIntensity; // Tốc độ xoáy
+                starSpeedX += Math.cos(angle + PI_HALF) * tangentialSpeedFactor * ( (Math.floor(angle / (PI_2/numArms)) % 2 === 0) ? 1 : -1) ; // Đổi chiều cho các nhánh
+                starSpeedY += Math.sin(angle + PI_HALF) * tangentialSpeedFactor * ( (Math.floor(angle / (PI_2/numArms)) % 2 === 0) ? 1 : -1) ;
+
+
+                const star = Star.add(
+                    shellBurstContext.x,
+                    shellBurstContext.y,
+                    shellBurstContext.color, // Màu chính
+                    Math.atan2(starSpeedX, starSpeedY), // Hướng bay mới dựa trên tổng vận tốc
+                    Math.sqrt(starSpeedX * starSpeedX + starSpeedY * starSpeedY), // Độ lớn vận tốc mới
+                    shellBurstContext.starLife + Math.random() * shellBurstContext.starLife * shellBurstContext.starLifeVariation,
+                    shellBurstContext.initialVelocityX,
+                    shellBurstContext.initialVelocityY
+                );
+
+                // Sao của Galaxy Swirl sẽ có hiệu ứng glitter (lấp lánh)
+                if (shellBurstContext.glitter) {
+                    star.sparkFreq = shellBurstContext.sparkFreq / 1.5; // Lấp lánh nhiều hơn chút
+                    star.sparkSpeed = shellBurstContext.sparkSpeed;
+                    star.sparkLife = shellBurstContext.sparkLife * 1.2; // Lấp lánh lâu hơn
+                    star.sparkLifeVariation = shellBurstContext.sparkLifeVariation;
+                    star.sparkColor = shellBurstContext.glitterColor; // Màu lấp lánh riêng
+                    star.sparkTimer = Math.random() * star.sparkFreq;
+                }
+
+                // Có thể thêm hiệu ứng mờ dần (fade out) cho các ngôi sao ở rìa
+                if (speedMult < 0.3) { // Các sao ở gần tâm hơn
+                    star.visible = true;
+                } else if (speedMult > 0.7) { // Các sao ở xa tâm hơn
+                     // Làm cho sao mờ đi hoặc có life ngắn hơn một chút
+                     // star.life *= (1 - (speedMult - 0.7) / 0.3) * 0.5 + 0.5;
+                }
+
+
+                if (shellBurstContext.onDeath) {
+                    star.onDeath = shellBurstContext.onDeath;
+                }
+            };
+        }
+    };
+};
 // ✨ KẾT THÚC KHỐI CODE MỚI THÊM VÀO
 const ghostShell = (size=1) => {
 	// Extend crysanthemum shell
@@ -864,6 +941,7 @@ const shellTypes = {
 	'Ring': ringShell,
 	'Strobe': strobeShell,
 	'Rainbow Burst': rainbowShell, // ✨ THÊM DÒNG NÀY
+	'Galaxy Swirl': galaxySwirlShell, // ✨ THÊM DÒNG NÀY
 	'Willow': willowShell
 };
 
@@ -977,7 +1055,7 @@ function seqRandomShell() {
 		extraDelay = 4600;
 	}
 	
-	return 900 + Math.random() * 600 + extraDelay;
+	return 650 + Math.random() * 400 + extraDelay; // 💨 GIẢM: Thời gian chờ cơ bản
 }
 
 function seqRandomFastShell() {
@@ -1037,7 +1115,41 @@ function seqTriple() {
 	
 	return 4000;
 }
+// ... (gần các hàm seq... khác như seqPyramid, seqSmallBarrage)
 
+// ✨ BẮT ĐẦU KHỐI CODE MỚI HOÀN TOÀN CHO seqGrandVolley
+function seqGrandVolley() {
+    // MyMath.randomInt(min, max) là hàm tự viết hoặc từ thư viện MyMath.js
+    // Nếu không có, bạn có thể dùng: Math.floor(Math.random() * (max - min + 1)) + min;
+    const numShells = IS_DESKTOP ? (MyMath.randomInt ? MyMath.randomInt(5, 8) : Math.floor(Math.random() * 4) + 5) 
+                               : (MyMath.randomInt ? MyMath.randomInt(3, 5) : Math.floor(Math.random() * 3) + 3);
+    const baseDelayBetweenShots = 70; // 🚀 Độ trễ cơ bản giữa các quả trong loạt bắn (giảm để dồn dập hơn)
+    let currentShotDelay = 0;
+    let maxStarLifeInVolley = 0;
+
+    for (let i = 0; i < numShells; i++) {
+        setTimeout(() => {
+            const randomPositionAndSize = getRandomShellSize(); // Lấy kích thước và vị trí ngẫu nhiên
+            // Ưu tiên các loại shell nhanh và đẹp mắt cho volley, hoặc nhiều Crysanthemum
+            const shellTypeFactory = (Math.random() < 0.7) ? crysanthemumShell : randomFastShell();
+            const shellInstance = new Shell(shellTypeFactory(randomPositionAndSize.size));
+
+            // Theo dõi starLife lớn nhất để tính thời gian sequence hợp lý
+            if (shellInstance.starLife > maxStarLifeInVolley) {
+                maxStarLifeInVolley = shellInstance.starLife;
+            }
+
+            shellInstance.launch(
+                randomPositionAndSize.x, 
+                randomPositionAndSize.height * (0.75 + Math.random() * 0.5) // Biến đổi chiều cao bắn một chút
+            );
+        }, currentShotDelay);
+        currentShotDelay += baseDelayBetweenShots + Math.random() * 40; // Thêm chút ngẫu nhiên vào độ trễ
+    }
+    // Thời gian cho sequence này: thời gian bắn hết các quả + thời gian sống của quả pháo hoa lâu nhất + một chút buffer
+    return currentShotDelay + maxStarLifeInVolley + 500;
+}
+// ✨ KẾT THÚC KHỐI CODE MỚI HOÀN TOÀN CHO seqGrandVolley
 function seqPyramid() {
 	const barrageCountHalf = IS_DESKTOP ? 7 : 4;
 	const largeSize = shellSizeSelector();
@@ -1139,6 +1251,7 @@ const sequences = [
 let isFirstSeq = true;
 const finaleCount = 32;
 let currentFinaleCount = 0;
+
 function startSequence() {
 	if (isFirstSeq) {
 		isFirstSeq = false;
@@ -1153,35 +1266,52 @@ function startSequence() {
 	}
 	
 	if (finaleSelector()) {
-		seqRandomFastShell();
-		if (currentFinaleCount < finaleCount) {
-			currentFinaleCount++;
-			return 170;
-		}
-		else {
-			currentFinaleCount = 0;
-			return 6000;
-		}
-	}
+   	 const finaleShotDelay = 100; // 🧨 GIẢM: Độ trễ giữa các đợt bắn (trước có thể là 170)
+	 const finaleSalvoSize = 2;   // 💥 THÊM MỚI: Số lượng pháo hoa bắn CÙNG LÚC trong mỗi đợt finale
+                                 // (Bạn có thể tăng lên 3 nếu máy mạnh)
+    // const finaleCount = 32; // Giữ nguyên hoặc điều chỉnh finaleCount ở nơi nó được khai báo nếu muốn
+
+    if (currentFinaleCount < finaleCount) { // finaleCount giờ là số ĐỢT bắn
+        for (let i = 0; i < finaleSalvoSize; i++) {
+            // Tạo một chút độ trễ ngẫu nhiên nhỏ cho mỗi quả trong một loạt bắn đồng thời
+            // để chúng không nổ chồng khít lên nhau hoàn toàn.
+            setTimeout(() => {
+                seqRandomFastShell(); // Gọi hàm bắn một quả pháo hoa nhanh
+            }, Math.random() * 40 * i); // 💡 Độ trễ nhỏ giữa các quả trong một loạt salvo
+        }
+        currentFinaleCount++;
+        return finaleShotDelay; // Trả về độ trễ ngắn cho đợt bắn tiếp theo
+    } else {
+        currentFinaleCount = 0;
+        return 4500; // 🕒 GIẢM: Thời gian nghỉ giữa các cụm finale lớn (trước có thể là 6000)
+    }
+}
 	
 	const rand = Math.random();
 	
-	if (rand < 0.08 && Date.now() - seqSmallBarrage.lastCalled > seqSmallBarrage.cooldown) {
-		return seqSmallBarrage();
+	// ✨ THAY ĐỔI LOGIC CHỌN SEQUENCE BÊN DƯỚI
+	if (rand < 0.20 && Date.now() - seqSmallBarrage.lastCalled > seqSmallBarrage.cooldown) { //  확률 Tăng xác suất seqSmallBarrage
+	    return seqSmallBarrage();
 	}
 	
-	if (rand < 0.1) {
-		return seqPyramid();
+	// 💣 THÊM MỚI: Gọi seqGrandVolley với xác suất cao
+	if (rand < 0.45) { 
+	    return seqGrandVolley();
 	}
 	
-	if (rand < 0.6 && !IS_HEADER) {
-		return seqRandomShell();
+	if (rand < 0.65) { // Xác suất cho seqPyramid
+	    return seqPyramid();
 	}
-	else if (rand < 0.8) {
-		return seqTwoRandom();
+	
+	// Giảm xác suất của các sequence đơn giản hơn hoặc thay đổi tùy ý
+	if (rand < 0.75 && !IS_HEADER) { 
+	    return seqRandomShell(); // Ít bắn ngẫu nhiên đơn lẻ hơn
 	}
-	else if (rand < 1) {
-		return seqTriple();
+	else if (rand < 0.90) {
+	    return seqTwoRandom();
+	}
+	else { // rand < 1
+	    return seqTriple();
 	}
 }
 
@@ -1332,7 +1462,8 @@ function updateGlobals(timeStep, lag) {
 	if (store.state.config.autoLaunch) {
 		autoLaunchTime -= timeStep;
 		if (autoLaunchTime <= 0) {
-			autoLaunchTime = startSequence() * 1.25;
+			// 👇 SỬA ĐỔI HỆ SỐ NHÂN Ở ĐÂY
+       			 autoLaunchTime = startSequence() * 1.1;
 		}
 	}
 }
